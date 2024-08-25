@@ -1,5 +1,5 @@
 #!/bin/bash
-PWD=$(pwd)
+CURRENTDIR=$(pwd)
 
 cat << EOF > my-package.list
 bash-completion
@@ -21,7 +21,20 @@ nginx
 expac
 krfb
 remmina
+keychain
+wayvnc
 EOF
+
+function onexit {
+	echo "Exit Trap..."
+	cd $CURRENTDIR
+	pwd
+	#Restore original package.list
+	cp ./package.list-orig  $BUILD_DIR/$CURRENT_SOURCE/package.list
+	#Remove the lock file now script has completed successfully
+	rm ./my-package.list.lock
+}
+trap onexit EXIT
 
 echo "Updating..."
 CURRENT_SOURCE="arkanelinux-kde4"
@@ -42,8 +55,13 @@ fi
 echo "Building the image..."
 cd "$HOME"
 sudo arkdep-build "$CURRENT_SOURCE"
-cd $PWD
+if [[  "$?" -ne 0  ]]; then
+	echo "Build failed. Exiting"
+	exit 1
+fi
+
 echo "Image has been built."
+cd $CURRENTDIR
 
 IMAGE=$(ls -t "$HOME/target" | grep tar.zst | head -n 1)
 #extension="${IMAGE##*.}"
@@ -65,11 +83,11 @@ sudo cp $HOME/target/$IMAGE /arkdep/cache/
 
 echo "Installing..."
 sudo arkdep deploy cache $BASEIMAGE
+echo "RETURN: $?"
 
-#Restore original package.list
-cp $HOME/scripts/package.list-orig  $BUILD_DIR/$CURRENT_SOURCE/package.list
-#Remove the lock file now script has completed successfully
-rm -f $HOME/scripts/my-package.list.lock
+pwd
+cd $CURRENTDIR
+pwd
 
 echo "Done"
 
