@@ -22,7 +22,10 @@ expac
 krfb
 remmina
 keychain
-wayvnc
+plasma-meta
+aspell
+tigervnc
+cosmic-session
 EOF
 
 function onexit {
